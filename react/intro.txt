@@ -1,0 +1,43 @@
+React, which is a Facebook creation, is a great framework for building Fast, Single Page User Interfaces and Web Apps,
+also turned out a great journey for me. my journey of React world (the better half of 2019) was a great
+experience overall, considering the patterns I learnt by the grace of the mistakes I made.
+it made me a better developer, abled me to "Think React"ively, enabling me to create or identify a pattern while coding.
+these patterns, though learnt through React, are actually, "Software Patterns", and can be applied at a wider scope,
+irrespective of the stack. I call these patterns my "DRY Principles". I'm using them frequently, resulting in increased
+productivity.they are well structured and have frequent use-cases.
+I'm very glad to share the valuables of my "React" journey. we will begin our journey with the "CRUD" Pattern
+
+CRUD (Create, Read, Update and Delete) is a very frequent use case or probably the most frequent use case in Development.
+we will illustrate its functioning by creating a "Library" App that will have an Overview(Dashboard), list view
+and a details view each for both Book and Member components. let's see the CRUD Component structure.
+
+1. Dashboard (overview):
+    - an overview of the entire app (in our case, Books and Members count)
+    - it will be the home page of the library app that will show the total numbers of books and members.
+
+2. Book:
+    - Fields: title, author, ISBN and year
+    - every book will have above fields on both list and details view.
+    - Create(C) and Update(U) part of CRUD will be implemented in details view using form
+    - Read, Update and Delete (RUD) part of CRUD will be implemented in list view using:
+        i. table for read (R) part
+        ii. edit button for Update(U) part.
+        iii. delete button for Delete(D) part
+    - Update will be implemented in both list and details view
+
+    now, we will check list and details views in Details
+
+    a. Book List View :
+        - it will be a list of records (table) that will show a record of the above fields for every book.
+        - every record will also have:
+            i. an edit button to edit a record using details view.
+            ii. a delete button to delete a record
+        -
+    b. Book Details View:
+        - it will be a form to input, validate and submit mentioned Book fields.
+        - the same form will be used to validate, edit and submit existing record
+
+that's all for this blog. we will see the entire implementation of CRUD Pattern including frontend code(React, Redux) and
+backend code(Django Rest) in next blog. till then, Good Bye!
+
+
