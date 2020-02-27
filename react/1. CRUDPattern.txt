@@ -1,0 +1,196 @@
+In the last post, we checked out the brief architecture of the CRUD Pattern. in this one, we will see CRUD pattern in
+details using the implementation of the "Library App" in React,Redux
+
+i was working on a react project, which had a dashboard and a page with list of records and a form that will create/edit
+details of selected record. and this CRUD structure was used almost on every page of that app. so i wanted to have a
+solid structure that is well organized and elegant. after many trials and errors, i come up with below structure which
+is my goto whenever a page needs CRUD like structure. let's have a look at it.
+
+CRUD Pattern:
+    it consists of two sections. list and details views.
+
+    1. List View:
+        it will be a list of records (table) that will show a record of the above fields for every book.every record will
+        also have:
+            i. an edit button to edit a record using details view.
+            ii. a delete button to delete a record
+
+        edit button will get the record data and will pass it to details view where it can be modified and updated
+
+    2. Details View:
+        it uses a form to Create (C) or Update(U) a record. it will have several fields with an "id" prop defined for each.
+        a common onChangeHandler handles change for every field and sets it in a formData and changedFields object.
+        fieldAttributes is an object defining attributes for each field (id, customValidator, required). it is used for
+        validation of userInput by formValidator. formValidator is a function that recieves fieldAttributes and userInput,
+        validates userInput against fieldAttributes and sets field related errors accordingly in formErrors object.
+        the formErrors object is used by fieldError and fieldHelperText functions. they set error, helperText attribute
+        of the field according to the formError object of the respective field from
+        formErrors object. if formValidator returns an empty formErrors object, the form is then submitted. if the response
+        has error, then the apiErrors are catched from the response and passed on to apiErrorsToFormFields to generate
+        apiErrors object and pass it to fieldError and fieldHelperText functions to set as error and helperText on
+        related field
+
+
+        {/* FORM (Details View) */}
+          <BookForm
+            open={this.state.open}
+            handleClose={this.handleClose}
+            formData={this.state.bookData}
+            addBook={this.addBook}
+            editBook={this.editBook}
+            apiErrors={this.state.apiErrors}
+          />
+
+        {/* TABLE (List View) */}
+        <h2>Books</h2>
+        <BookTable
+          books={this.props.books}
+          editBook={this.handleOpen}
+          deleteBook={this.deleteBook}
+        />
+
+        BOOKS COMPONENT WITH LIST(TABLE) AND DETAILS(FORM) VIEW
+
+
+Form (Details View):
+
+1. onChange Handler:
+  initially, while working on a form with several fields, i used to create an onChangehandler for every field, like
+  (onChangeTitle, onChangeAuthor,onChangeISBN and so on) and thus, it was necessary to create a single common
+  onChangeHandler that will handle change for every field which will reduce the code and increase readability.
+  so, we set an "id" prop on every field (eg. id="title', id="isbn") and then, recieve {id, value} from the event
+  passed to the common onChangeHandler using destructuring. since, ES6 has abled the support for dynamic
+  key(variable as Object Key), we use variable id as key (eg. [id]:value => "title":value) and value as value in
+  formData(Create) and changedFields(Update) objects.
+
+  onChangeHandler = e => {
+    const { id, value } = e.target;
+    this.setState({
+      ...this.state,
+      formData: {
+        ...this.state.formData,
+        [id]: value
+      },
+      changedFields: {
+        ...this.state.changedFields,
+        [id]: value
+      }
+    });
+  };
+
+2. fieldAttributes for Book Component
+    it defines attributes to be used during validation. the key itself (eg. title,author) is used to set error, helpertext
+    for the field. "required" prop bypasses validation if false. "customValidator" is a function that will be called by
+    formValidator with field value. customValidator will validate the value with defined conditions and will return
+    a formError object ({error:true, helperText:"invalid input"} for invalid value and {error:false, helperText: {}}
+    for valid value) that will be set to the field props (error and helperText) respectively by fieldError and
+    fieldHelperText functions.
+
+const fieldAttributes = {
+  title: {
+    required: true,
+    customValidator: value =>
+      value.length > 100
+        ? { helperText: "enter less than 100 characters", error: true }
+        : { helperText: "", error: false }
+  },
+  author: {
+    required: true,
+    customValidator: value =>
+      value.length > 100
+        ? { helperText: "enter less than 100 characters", error: true }
+        : { helperText: "", error: false }
+  },
+  isbn: {
+    required: true,
+    customValidator: value =>
+      value.length !== 17
+        ? {
+            helperText: "invalid ISBN. valid value is '123-4-56789-012-3'",
+            error: true
+          }
+        : { helperText: "", error: false }
+  },
+  year: {
+    required: true,
+    customValidator: value =>
+      isNaN(value)
+        ? { helperText: "Invalid Year", error: true }
+        : { helperText: "", error: false }
+  }
+};
+
+3. FormValidator
+  it is a function that recieves fieldAttributes object and userInput(set by onChangeHandler). it is called by onSubmit
+  function that is invoked when user submits the form. it validates each field for empty value and returns formError object
+  for the empty fields. then, if defined for the field in fieldAttributes, customValidator is called with the value.
+  the object returned by customValidator is then set in formErrors for the field and the formErrors object is returned to
+  the onSubmit function. the form is submitted if the formErrors object is empty.
+
+const formValidator = (fieldAttributes, userInput) => {
+  let formErrors = {};
+  for (let field in fieldAttributes) {
+    let value = userInput[field];
+    let fieldEmpty = !value;
+    if (fieldEmpty && fieldAttributes[field].required) {
+      formErrors[field] = {
+        error: true,
+        helperText: "this field should be non-empty"
+      };
+    } else if (!fieldEmpty && fieldAttributes[field].customValidator) {
+      let customValidator = fieldAttributes[field].customValidator;
+      let formError = customValidator(value);
+      if (formError.error) formErrors[field] = formError;
+    }
+  }
+
+  return { formErrors, errorCount: Object.keys(formErrors).length };
+};
+
+4. apiErrorsToFormFields and apiErrors object
+  if the response has an error, that error is passed to apiErrorsToFormFields function which checks for an errorData
+  object and sets it into into apiErrors object (similar to formErrors) . the apiErrors object is passed to fieldError
+  and fieldHelperText functions to set error and helperText on the field.
+
+  apiErrorsToFormFields = error => {
+    if (error.response && error.response.data) {
+      let errorData = error.response.data;
+      let apiErrors = {};
+      for (let apiKey in errorData) {
+        apiErrors[apiKey] = {
+          helperText: errorData[apiKey].join(""),
+          error: true
+        };
+      }
+      this.setState({ apiErrors });
+    }
+  };
+
+
+5. fieldError and fieldHelperText functions
+
+  these functions recieve an id ("title","isbn") to match with the key in formErrors, apiErrors objects.
+  they check apiErrors and formErrors objects for error(fieldError) and helperText(fieldHelperText) respectively
+  for each field and set error, helperText attribute of the field accordingly.
+  if the error attribute is true, the label will be displayed in an error state(red). the helperText attribute will
+  show the error text for the field. default values are false and "" for fieldError and fieldHelperText respectively.
+
+  fieldError = id => {
+    let errors = { ...this.props.apiErrors, ...this.state.formErrors };
+    let field = errors[id];
+    return field ? field.error : false;
+  };
+
+  fieldHelperText = id => {
+    let errors = { ...this.props.apiErrors, ...this.state.formErrors };
+    let field = errors[id];
+    return field ? field.helperText : "";
+  };
+
+
+this was the CRUD Pattern applicable in frequent cases. we will carry our journey forward in next blog post.
+till then, Good Bye!
+
+source code:
+frontend (React): https://github.com/hyphenOs/library-frontend
+backend (Django REST): https://github.com/hyphenOs/library-backend
